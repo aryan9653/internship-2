@@ -1,8 +1,9 @@
 
 'use server';
 
-import { listFiles, deleteFile, moveFile, getFile, DriveItem } from '@/lib/mock-drive';
+import { listFiles, deleteFile, moveFile, getFile, getFileContent, DriveItem } from '@/lib/drive';
 import { summarizeFileContent } from '@/ai/flows/summarize-file-content';
+import { getAuthorizationUrl, getOAuth2Client, clearAuth } from '@/lib/auth';
 
 type Command = 
   | { type: 'LIST', path: string }
@@ -10,6 +11,8 @@ type Command =
   | { type: 'MOVE', source: string, dest: string }
   | { type: 'SUMMARY', path?: string }
   | { type: 'HELP' }
+  | { type: 'AUTH' }
+  | { type: 'LOGOUT' }
   | { type: 'UNKNOWN', input: string };
 
 function parseCommand(input: string): Command {
@@ -27,16 +30,13 @@ function parseCommand(input: string): Command {
       return { type: 'SUMMARY', path: parts[1] };
     case 'HELP':
       return { type: 'HELP' };
+    case 'AUTH':
+        return { type: 'AUTH' };
+    case 'LOGOUT':
+        return { type: 'LOGOUT' };
     default:
       return { type: 'UNKNOWN', input };
   }
-}
-
-function formatFileList(items: DriveItem[]): string {
-    if (items.length === 0) {
-        return "This folder is empty.";
-    }
-    return 'Files in folder:\n' + items.map(item => `${item.type === 'folder' ? '📁' : '📄'} ${item.name}`).join('\n');
 }
 
 const HELP_MESSAGE = `Welcome to DriveWhizz! Here are the available commands:
@@ -44,10 +44,31 @@ const HELP_MESSAGE = `Welcome to DriveWhizz! Here are the available commands:
 - \`MOVE /source/path /dest/folder\`: Moves a file or folder.
 - \`DELETE /path/to/file\`: Deletes a file. Requires confirmation.
 - \`SUMMARY /path/to/file\`: Summarizes the content of a file (PDF/Docx/TXT).
+- \`AUTH\`: Authenticate with your Google Account.
+- \`LOGOUT\`: Revoke authentication.
 - \`HELP\`: Shows this help message.`;
 
 export async function processCommand(commandStr: string): Promise<{ message: string, data?: any }> {
   const parsed = parseCommand(commandStr);
+
+  if (parsed.type === 'AUTH') {
+    const authClient = await getOAuth2Client();
+    if(authClient) {
+        return { message: "You are already authenticated." };
+    }
+    const authUrl = getAuthorizationUrl();
+    return { message: `Please visit the following URL to authenticate:\n\n[${authUrl}](${authUrl})` };
+  }
+  
+  if (parsed.type === 'LOGOUT') {
+    await clearAuth();
+    return { message: "You have been logged out." };
+  }
+
+  const authClient = await getOAuth2Client();
+  if (!authClient && parsed.type !== 'HELP' && parsed.type !== 'UNKNOWN') {
+      return { message: `You are not authenticated. Please type \`AUTH\` to authenticate with Google.` };
+  }
 
   switch (parsed.type) {
     case 'HELP':
@@ -55,7 +76,7 @@ export async function processCommand(commandStr: string): Promise<{ message: str
 
     case 'LIST': {
       if (!parsed.path) return { message: 'Error: Please specify a path for LIST.' };
-      const result = listFiles(parsed.path);
+      const result = await listFiles(parsed.path);
       if (typeof result === 'string') return { message: result };
       return { message: `Contents of ${parsed.path}:`, data: result };
     }
@@ -65,31 +86,38 @@ export async function processCommand(commandStr: string): Promise<{ message: str
         if (!parsed.confirm) {
             return { message: `Are you sure you want to want to delete "${parsed.path}"? Please reply with \`DELETE ${parsed.path} confirm\` to proceed.` };
         }
-        const result = deleteFile(parsed.path);
+        const result = await deleteFile(parsed.path);
         return { message: result };
     }
 
     case 'MOVE': {
         if (!parsed.source || !parsed.dest) return { message: 'Error: Please specify a source and destination for MOVE.' };
-        const result = moveFile(parsed.source, parsed.dest);
+        const result = await moveFile(parsed.source, parsed.dest);
         return { message: result };
     }
 
     case 'SUMMARY': {
         if (!parsed.path) {
-            const allFiles = listFiles('/', true); // Recursive list
-            if (typeof allFiles === 'string') {
-                 return { message: "Which file would you like to summarize? I couldn't list the files." };
+            const allFilesResult = await listFiles('/'); 
+            if (typeof allFilesResult === 'string') {
+                 return { message: `Which file would you like to summarize? I couldn't list the files. Error: ${allFilesResult}` };
             }
-            const fileList = allFiles.filter(i => i.type === 'file').map(i => i.path).join('\n - ');
+            const fileList = allFilesResult.filter(i => i.type === 'file').map(i => i.path).join('\n - ');
             return { message: `Which file would you like to summarize? Please use \`SUMMARY /path/to/file\`. Available files:\n - ${fileList}` };
         }
-        const file = getFile(parsed.path);
-        if (typeof file === 'string') return { message: file };
+        const fileResult = await getFile(parsed.path);
+        if (typeof fileResult === 'string') return { message: fileResult };
+
+        const file = fileResult as DriveItem;
+        if (!file.id) {
+            return { message: 'Error: File ID not found.' };
+        }
         
         try {
-            const fileContent = file.content;
-            const base64Content = Buffer.from(fileContent).toString('base64');
+            const fileContentResult = await getFileContent(file.id);
+            if (typeof fileContentResult === 'string') return { message: fileContentResult };
+
+            const base64Content = fileContentResult.toString('base64');
             const dataUri = `data:${file.mimeType};base64,${base64Content}`;
 
             const result = await summarizeFileContent({ fileDataUri: dataUri });
@@ -102,5 +130,9 @@ export async function processCommand(commandStr: string): Promise<{ message: str
 
     case 'UNKNOWN':
       return { message: `Unknown command: "${parsed.input}". Type "HELP" for a list of commands.` };
+    
+    // Default case to satisfy TypeScript, should not be reached.
+    default:
+        return { message: `Command not implemented.` };
   }
 }
