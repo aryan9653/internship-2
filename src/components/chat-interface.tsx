@@ -16,7 +16,13 @@ const initialMessage: Omit<Message, 'timestamp'> = {
     content: "Welcome to DriveWhizz! I can help you manage your Google Drive. Type 'HELP' to see what I can do.",
 };
 
-const getTimestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const getTimestamp = () => {
+    if (typeof window === 'undefined') {
+        return '';
+    }
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -62,6 +68,14 @@ export default function ChatInterface() {
         timestamp: getTimestamp(),
       };
       setMessages(prev => [...prev, botMessage]);
+
+      if (response.authUrl || response.needsReload) {
+        setIsLoading(false);
+        if (response.needsReload) {
+          window.location.reload();
+        }
+      }
+
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -71,7 +85,9 @@ export default function ChatInterface() {
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      setIsLoading(false);
+      if (!input.toUpperCase().startsWith('AUTH') && !input.toUpperCase().startsWith('LOGOUT')) {
+        setIsLoading(false);
+      }
     }
   };
 

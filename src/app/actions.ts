@@ -4,6 +4,7 @@
 import { listFiles, deleteFile, moveFile, getFile, getFileContent, DriveItem } from '@/lib/drive';
 import { summarizeFileContent } from '@/ai/flows/summarize-file-content';
 import { getAuthorizationUrl, getOAuth2Client, clearAuth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 type Command = 
   | { type: 'LIST', path: string }
@@ -48,7 +49,7 @@ const HELP_MESSAGE = `Welcome to DriveWhizz! Here are the available commands:
 - \`LOGOUT\`: Revoke authentication.
 - \`HELP\`: Shows this help message.`;
 
-export async function processCommand(commandStr: string): Promise<{ message: string, data?: any }> {
+export async function processCommand(commandStr: string): Promise<{ message: string, data?: any, authUrl?: boolean, needsReload?: boolean }> {
   const parsed = parseCommand(commandStr);
 
   if (parsed.type === 'AUTH') {
@@ -57,12 +58,12 @@ export async function processCommand(commandStr: string): Promise<{ message: str
         return { message: "You are already authenticated." };
     }
     const authUrl = await getAuthorizationUrl();
-    return { message: `Please visit the following URL to authenticate:\n\n[${authUrl}](${authUrl})` };
+    return { message: `Please visit the following URL to authenticate:\n\n[${authUrl}](${authUrl})`, authUrl: true };
   }
   
   if (parsed.type === 'LOGOUT') {
     await clearAuth();
-    return { message: "You have been logged out." };
+    return { message: "You have been logged out.", needsReload: true };
   }
 
   const authClient = await getOAuth2Client();
