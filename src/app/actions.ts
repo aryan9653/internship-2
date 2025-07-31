@@ -8,7 +8,7 @@ type Command =
   | { type: 'LIST', path: string }
   | { type: 'DELETE', path: string, confirm: boolean }
   | { type: 'MOVE', source: string, dest: string }
-  | { type: 'SUMMARY', path: string }
+  | { type: 'SUMMARY', path?: string }
   | { type: 'HELP' }
   | { type: 'UNKNOWN', input: string };
 
@@ -76,7 +76,14 @@ export async function processCommand(commandStr: string): Promise<{ message: str
     }
 
     case 'SUMMARY': {
-        if (!parsed.path) return { message: 'Error: Please specify a file path to summarize.' };
+        if (!parsed.path) {
+            const allFiles = listFiles('/');
+            if (typeof allFiles === 'string') {
+                 return { message: "Which file would you like to summarize? I couldn't list the files." };
+            }
+            const fileList = allFiles.filter(i => i.type === 'file').map(i => i.name).join('\n - ');
+            return { message: `Which file would you like to summarize? Please use \`SUMMARY /path/to/file\`. Available files:\n - ${fileList}` };
+        }
         const file = getFile(parsed.path);
         if (typeof file === 'string') return { message: file };
         
