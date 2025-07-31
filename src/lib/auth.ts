@@ -17,7 +17,7 @@ const SCOPES = [
     'https://www.googleapis.com/auth/drive.file'
 ];
 
-export function getAuthorizationUrl(): string {
+export async function getAuthorizationUrl(): Promise<string> {
     return OAUTH2_CLIENT.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,

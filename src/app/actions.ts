@@ -56,7 +56,7 @@ export async function processCommand(commandStr: string): Promise<{ message: str
     if(authClient) {
         return { message: "You are already authenticated." };
     }
-    const authUrl = getAuthorizationUrl();
+    const authUrl = await getAuthorizationUrl();
     return { message: `Please visit the following URL to authenticate:\n\n[${authUrl}](${authUrl})` };
   }
   
