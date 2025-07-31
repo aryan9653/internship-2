@@ -29,14 +29,18 @@ export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [initialTimestamp, setInitialTimestamp] = useState('');
 
   useEffect(() => {
-    const timestamp = getTimestamp();
-    // Set initial message only once
-    if (messages.length === 0) {
-        setMessages([{ ...initialMessage, timestamp }]);
-    }
+    setInitialTimestamp(getTimestamp());
   }, []);
+
+  useEffect(() => {
+    // Set initial message only once
+    if (messages.length === 0 && initialTimestamp) {
+        setMessages([{ ...initialMessage, timestamp: initialTimestamp }]);
+    }
+  }, [initialTimestamp]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -91,8 +95,8 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+    <div className="flex flex-col h-full flex-1">
+      <ScrollArea className="flex-grow p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
           {messages.map(msg => (
             <ChatMessage key={msg.id} {...msg} />
@@ -113,7 +117,7 @@ export default function ChatInterface() {
           )}
         </div>
       </ScrollArea>
-      <div className="p-4 border-t bg-muted/50">
+      <div className="p-4 border-t bg-muted/50 mt-auto">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <Input
             value={input}
