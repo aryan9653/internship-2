@@ -1,11 +1,11 @@
 
 'use server';
 
+import 'dotenv/config'
 import { google } from 'googleapis';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { OAuth2Client } from 'google-auth-library';
-import 'dotenv/config'
 
 const OAUTH2_CLIENT = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
