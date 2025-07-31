@@ -1,3 +1,19 @@
+import ChatInterface from '@/components/chat-interface';
+
 export default function Home() {
-  return <></>;
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background p-2 sm:p-4">
+      <div className="w-full max-w-lg h-[95vh] flex flex-col rounded-2xl bg-card shadow-xl border overflow-hidden">
+        <header className="p-4 border-b bg-muted/50">
+          <h1 className="text-xl font-bold text-center text-foreground font-headline">
+            DriveWhizz
+          </h1>
+          <p className="text-sm text-center text-muted-foreground">
+            Your WhatsApp-Powered Google Drive Assistant
+          </p>
+        </header>
+        <ChatInterface />
+      </div>
+    </main>
+  );
 }
