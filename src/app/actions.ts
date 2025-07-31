@@ -17,7 +17,8 @@ type Command =
   | { type: 'UNKNOWN', input: string };
 
 function parseCommand(input: string): Command {
-  const parts = input.trim().split(/\s+/);
+  const sanitizedInput = input.replace(/`/g, '');
+  const parts = sanitizedInput.trim().split(/\s+/);
   const command = parts[0]?.toUpperCase();
   
   switch (command) {
@@ -134,6 +135,7 @@ export async function processCommand(commandStr: string): Promise<{ message: str
     
     // Default case to satisfy TypeScript, should not be reached.
     default:
+        const exhaustiveCheck: never = parsed;
         return { message: `Command not implemented.` };
   }
 }
