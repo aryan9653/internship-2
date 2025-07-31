@@ -10,18 +10,23 @@ import { processCommand } from '@/app/actions';
 import { Send, Bot } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
-const initialMessage: Message = {
+const initialMessage: Omit<Message, 'timestamp'> = {
     id: 'initial',
     sender: 'bot',
     content: "Welcome to DriveWhizz! I can help you manage your Google Drive. Type 'HELP' to see what I can do.",
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 };
 
+const getTimestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([initialMessage]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMessages([{ ...initialMessage, timestamp: getTimestamp() }]);
+  }, []);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -40,7 +45,7 @@ export default function ChatInterface() {
       id: Date.now().toString(),
       sender: 'user',
       content: input,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: getTimestamp(),
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -54,7 +59,7 @@ export default function ChatInterface() {
         sender: 'bot',
         content: response.message,
         data: response.data,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: getTimestamp(),
       };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
@@ -62,7 +67,7 @@ export default function ChatInterface() {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
         content: "Sorry, something went wrong. Please try again.",
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        timestamp: getTimestamp(),
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
