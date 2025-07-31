@@ -31,7 +31,11 @@ export default function ChatInterface() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMessages([{ ...initialMessage, timestamp: getTimestamp() }]);
+    const timestamp = getTimestamp();
+    // Set initial message only once
+    if (messages.length === 0) {
+        setMessages([{ ...initialMessage, timestamp }]);
+    }
   }, []);
 
   useEffect(() => {
@@ -69,11 +73,8 @@ export default function ChatInterface() {
       };
       setMessages(prev => [...prev, botMessage]);
 
-      if (response.authUrl || response.needsReload) {
-        setIsLoading(false);
-        if (response.needsReload) {
+      if (response.needsReload) {
           window.location.reload();
-        }
       }
 
     } catch (error) {
@@ -85,9 +86,7 @@ export default function ChatInterface() {
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
-      if (!input.toUpperCase().startsWith('AUTH') && !input.toUpperCase().startsWith('LOGOUT')) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
   };
 
