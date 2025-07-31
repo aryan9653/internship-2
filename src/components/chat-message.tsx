@@ -24,9 +24,9 @@ export function ChatMessage({ sender, content, timestamp, data }: Message) {
                 <p className="whitespace-pre-wrap">{content}</p>
                 <ul className="mt-2 space-y-1">
                     {data.map((item: DriveItem) => (
-                        <li key={item.name} className="flex items-center space-x-2 text-sm p-1 rounded-md hover:bg-muted">
+                        <li key={item.path} className="flex items-center space-x-2 text-sm p-1 rounded-md hover:bg-muted">
                             {item.type === 'folder' ? <Folder className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
-                            <span>{item.name}</span>
+                            <span>{item.path || item.name}</span>
                         </li>
                     ))}
                 </ul>

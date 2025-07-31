@@ -63,7 +63,7 @@ export async function processCommand(commandStr: string): Promise<{ message: str
     case 'DELETE': {
         if (!parsed.path) return { message: 'Error: Please specify a file path to delete.' };
         if (!parsed.confirm) {
-            return { message: `Are you sure you want to delete "${parsed.path}"? Please reply with \`DELETE ${parsed.path} confirm\` to proceed.` };
+            return { message: `Are you sure you want to want to delete "${parsed.path}"? Please reply with \`DELETE ${parsed.path} confirm\` to proceed.` };
         }
         const result = deleteFile(parsed.path);
         return { message: result };
@@ -77,11 +77,11 @@ export async function processCommand(commandStr: string): Promise<{ message: str
 
     case 'SUMMARY': {
         if (!parsed.path) {
-            const allFiles = listFiles('/');
+            const allFiles = listFiles('/', true); // Recursive list
             if (typeof allFiles === 'string') {
                  return { message: "Which file would you like to summarize? I couldn't list the files." };
             }
-            const fileList = allFiles.filter(i => i.type === 'file').map(i => i.name).join('\n - ');
+            const fileList = allFiles.filter(i => i.type === 'file').map(i => i.path).join('\n - ');
             return { message: `Which file would you like to summarize? Please use \`SUMMARY /path/to/file\`. Available files:\n - ${fileList}` };
         }
         const file = getFile(parsed.path);
