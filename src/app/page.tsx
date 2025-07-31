@@ -1,18 +1,26 @@
-import ChatInterface from '@/components/chat-interface';
 
-export default function Home() {
+import { AuthProvider } from '@/components/auth-provider';
+import ChatInterface from '@/components/chat-interface';
+import { getOAuth2Client } from '@/lib/auth';
+
+export default async function Home() {
+  const authClient = await getOAuth2Client();
+  const isAuthenticated = !!authClient;
+
   return (
-    <main className="flex flex-col items-center justify-center w-screen h-screen bg-background">
-      <div className="w-full max-w-lg h-full sm:h-[calc(100%-4rem)] sm:max-h-[800px] flex flex-col rounded-none sm:rounded-2xl bg-card shadow-xl border overflow-hidden">
-        <header className="p-4 border-b bg-muted/50">
-          <h1 className="text-xl font-bold text-center text-foreground font-headline">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background">
+      <div className="flex h-screen w-full max-w-lg flex-col overflow-hidden border bg-card shadow-xl sm:h-[calc(100%-4rem)] sm:max-h-[800px] sm:rounded-2xl">
+        <header className="border-b bg-muted/50 p-4">
+          <h1 className="text-center text-xl font-bold text-foreground">
             DriveWhizz
           </h1>
-          <p className="text-sm text-center text-muted-foreground">
-            Your WhatsApp-Powered Google Drive Assistant
+          <p className="text-center text-sm text-muted-foreground">
+            Your Google Drive Assistant
           </p>
         </header>
-        <ChatInterface />
+        <AuthProvider isAuthenticated={isAuthenticated}>
+          <ChatInterface />
+        </AuthProvider>
       </div>
     </main>
   );

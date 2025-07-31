@@ -8,21 +8,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ChatMessage, type Message } from '@/components/chat-message';
 import { processCommand } from '@/app/actions';
 import { Send, Bot } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { useAuth } from './auth-provider';
 
 const initialMessage: Omit<Message, 'timestamp'> = {
-    id: 'initial',
-    sender: 'bot',
-    content: "Welcome to DriveWhizz! I can help you manage your Google Drive. Type 'HELP' to see what I can do.",
+  id: 'initial',
+  sender: 'bot',
+  content: "Welcome to DriveWhizz! Please sign in to manage your Google Drive. Type 'HELP' to see what I can do once you're signed in.",
 };
 
 const getTimestamp = () => {
-    if (typeof window === 'undefined') {
-        return '';
-    }
-    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-
+  if (typeof window === 'undefined') {
+    return '';
+  }
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 export default function ChatInterface() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,30 +30,33 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [initialTimestamp, setInitialTimestamp] = useState('');
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setInitialTimestamp(getTimestamp());
   }, []);
 
   useEffect(() => {
-    // Set initial message only once
     if (messages.length === 0 && initialTimestamp) {
-        setMessages([{ ...initialMessage, timestamp: initialTimestamp }]);
+        const welcomeMessage = isAuthenticated
+            ? "Welcome back! Type 'HELP' to see what I can do."
+            : "Welcome to DriveWhizz! Please sign in to manage your Google Drive. Type 'HELP' to see available commands after signing in.";
+      setMessages([{ ...initialMessage, content: welcomeMessage, timestamp: initialTimestamp }]);
     }
-  }, [initialTimestamp]);
+  }, [initialTimestamp, isAuthenticated]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
-        const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
-        if (viewport) {
-            viewport.scrollTop = viewport.scrollHeight;
-        }
+      const viewport = scrollAreaRef.current.querySelector('div[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
     }
   }, [messages]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || !isAuthenticated) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -62,7 +65,7 @@ export default function ChatInterface() {
       timestamp: getTimestamp(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
@@ -75,59 +78,54 @@ export default function ChatInterface() {
         data: response.data,
         timestamp: getTimestamp(),
       };
-      setMessages(prev => [...prev, botMessage]);
-
-      if (response.needsReload) {
-          window.location.reload();
-      }
-
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        content: "Sorry, something went wrong. Please try again.",
+        content: 'Sorry, something went wrong. Please try again.',
         timestamp: getTimestamp(),
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full flex-1">
+    <div className="flex h-full flex-1 flex-col">
       <ScrollArea className="flex-grow p-4" ref={scrollAreaRef}>
         <div className="space-y-4">
-          {messages.map(msg => (
+          {messages.map((msg) => (
             <ChatMessage key={msg.id} {...msg} />
           ))}
           {isLoading && (
-             <div className="flex items-start space-x-3">
-                <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                        <Bot size={20} />
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center space-x-1 pt-2">
-                    <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce"></span>
-                </div>
+            <div className="flex items-start space-x-3">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  <Bot size={20} />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex items-center space-x-1 pt-2">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]"></span>
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]"></span>
+                <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground"></span>
+              </div>
             </div>
           )}
         </div>
       </ScrollArea>
-      <div className="p-4 border-t bg-muted/50 mt-auto">
+      <div className="mt-auto border-t bg-muted/50 p-4">
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
           <Input
             value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Type your command..."
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={isAuthenticated ? 'Type your command...' : 'Please sign in to continue'}
             className="flex-1 bg-background"
-            disabled={isLoading}
+            disabled={isLoading || !isAuthenticated}
             autoFocus
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+          <Button type="submit" size="icon" disabled={isLoading || !input.trim() || !isAuthenticated}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>

@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bot, User, Folder, FileText } from 'lucide-react';
 import type { DriveItem } from '@/lib/drive';
-import Link from 'next/link';
 
 export interface Message {
   id: string;
@@ -19,23 +18,6 @@ export function ChatMessage({ sender, content, timestamp, data }: Message) {
   const isUser = sender === 'user';
 
   const renderContent = () => {
-    // Check for auth URL
-    const authUrlRegex = /\[(https?:\/\/[^\s\]]+)\]\((https?:\/\/[^\s\]]+)\)/;
-    const authMatch = content.match(authUrlRegex);
-
-    if (authMatch) {
-        const preText = content.substring(0, authMatch.index);
-        const url = authMatch[1];
-        return (
-            <p className="whitespace-pre-wrap">
-                {preText}
-                <Link href={url} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80">
-                    Authenticate with Google
-                </Link>
-            </p>
-        );
-    }
-
     if (data && Array.isArray(data)) {
         return (
             <div>
@@ -67,7 +49,7 @@ export function ChatMessage({ sender, content, timestamp, data }: Message) {
         <div className="text-sm">
             {renderContent()}
         </div>
-        <p className={cn('text-xs mt-1', isUser ? 'text-primary-foreground/70' : 'text-muted-foreground', 'text-right')}>
+        <p className={cn('text-xs mt-1 text-right', isUser ? 'text-primary-foreground/70' : 'text-muted-foreground')}>
           {timestamp}
         </p>
       </div>
