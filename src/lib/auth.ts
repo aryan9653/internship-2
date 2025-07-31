@@ -7,11 +7,14 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { OAuth2Client } from 'google-auth-library';
 
-const OAUTH2_CLIENT = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    process.env.GOOGLE_REDIRECT_URI
-);
+// Helper function to create a new OAuth2 client
+function createOAuth2Client(): OAuth2Client {
+    return new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+}
 
 const SCOPES = [
     'https://www.googleapis.com/auth/drive.readonly',
@@ -19,7 +22,8 @@ const SCOPES = [
 ];
 
 export async function getAuthorizationUrl(): Promise<string> {
-    return OAUTH2_CLIENT.generateAuthUrl({
+    const oauth2Client = createOAuth2Client();
+    return oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: SCOPES,
         prompt: 'consent'
@@ -31,11 +35,7 @@ export async function getOAuth2Client(): Promise<OAuth2Client | null> {
     const tokens = cookieStore.get('google_tokens');
 
     if (tokens) {
-        const client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
-        );
+        const client = createOAuth2Client();
         client.setCredentials(JSON.parse(tokens.value));
         
         // Check if the access token is expired, and refresh if needed
@@ -64,8 +64,9 @@ export async function getOAuth2Client(): Promise<OAuth2Client | null> {
 }
 
 export async function handleAuthorizationCode(code: string) {
-    const { tokens } = await OAUTH2_CLIENT.getToken(code);
-    OAUTH2_CLIENT.setCredentials(tokens);
+    const oauth2Client = createOAuth2Client();
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
 
     cookies().set('google_tokens', JSON.stringify(tokens), {
         httpOnly: true,
