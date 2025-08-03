@@ -1,12 +1,7 @@
 
-import { AuthProvider } from '@/components/auth-provider';
 import ChatInterface from '@/components/chat-interface';
-import { getOAuth2Client } from '@/lib/auth';
 
 export default async function Home() {
-  const authClient = await getOAuth2Client();
-  const isAuthenticated = !!authClient;
-
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background">
       <div className="flex h-screen w-full max-w-lg flex-col overflow-hidden border bg-card shadow-xl sm:h-[calc(100%-4rem)] sm:max-h-[800px] sm:rounded-2xl">
@@ -18,9 +13,7 @@ export default async function Home() {
             Your Google Drive Assistant
           </p>
         </header>
-        <AuthProvider isAuthenticated={isAuthenticated}>
-          <ChatInterface />
-        </AuthProvider>
+        <ChatInterface />
       </div>
     </main>
   );

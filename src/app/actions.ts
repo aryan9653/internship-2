@@ -1,15 +1,9 @@
 
 'use server';
 
-import { getAuthorizationUrl, clearAuth } from '@/lib/auth';
-import { deleteFile, getFile, getFileContent, listFiles, moveFile, type DriveItem } from '@/lib/drive';
 import { summarizeFileContent } from '@/ai/flows/summarize-file-content';
-import { redirect } from 'next/navigation';
 
 type Command =
-  | { type: 'LIST'; path: string }
-  | { type: 'DELETE'; path: string; confirm: boolean }
-  | { type: 'MOVE'; source: string; dest: string }
   | { type: 'SUMMARY'; path?: string }
   | { type: 'HELP' }
   | { type: 'UNKNOWN'; input: string };
@@ -20,12 +14,6 @@ function parseCommand(input: string): Command {
   const command = parts[0]?.toUpperCase();
 
   switch (command) {
-    case 'LIST':
-      return { type: 'LIST', path: parts[1] || '/' };
-    case 'DELETE':
-      return { type: 'DELETE', path: parts[1], confirm: parts[2]?.toLowerCase() === 'confirm' };
-    case 'MOVE':
-      return { type: 'MOVE', source: parts[1], dest: parts[2] };
     case 'SUMMARY':
       return { type: 'SUMMARY', path: parts[1] };
     case 'HELP':
@@ -36,10 +24,7 @@ function parseCommand(input: string): Command {
 }
 
 const HELP_MESSAGE = `Welcome to DriveWhizz! Here are the available commands:
-- \`LIST /path/to/folder\`: Lists files and folders.
-- \`MOVE /source/path /dest/folder\`: Moves a file or folder.
-- \`DELETE /path/to/file\`: Deletes a file. Requires confirmation.
-- \`SUMMARY /path/to/file\`: Summarizes the content of a file (PDF/Docx/TXT).
+- \`SUMMARY\`: Summarizes the content of a file.
 - \`HELP\`: Shows this help message.`;
 
 export async function processCommand(commandStr: string): Promise<{ message: string; data?: any }> {
@@ -49,61 +34,8 @@ export async function processCommand(commandStr: string): Promise<{ message: str
     case 'HELP':
       return { message: HELP_MESSAGE };
 
-    case 'LIST': {
-      if (!parsed.path) return { message: 'Error: Please specify a path for LIST.' };
-      const result = await listFiles(parsed.path);
-      if (typeof result === 'string') return { message: result };
-      return { message: `Contents of ${parsed.path}:`, data: result };
-    }
-
-    case 'DELETE': {
-      if (!parsed.path) return { message: 'Error: Please specify a file path to delete.' };
-      if (!parsed.confirm) {
-        return { message: `Are you sure you want to want to delete "${parsed.path}"? Please reply with \`DELETE ${parsed.path} confirm\` to proceed.` };
-      }
-      const result = await deleteFile(parsed.path);
-      return { message: result };
-    }
-
-    case 'MOVE': {
-      if (!parsed.source || !parsed.dest) return { message: 'Error: Please specify a source and destination for MOVE.' };
-      const result = await moveFile(parsed.source, parsed.dest);
-      return { message: result };
-    }
-
     case 'SUMMARY': {
-      if (!parsed.path) {
-        const allFilesResult = await listFiles('/');
-        if (typeof allFilesResult === 'string') {
-          return { message: `Which file would you like to summarize? I couldn't list the files. Error: ${allFilesResult}` };
-        }
-        const fileList = allFilesResult
-          .filter((i) => i.type === 'file')
-          .map((i) => i.path)
-          .join('\n - ');
-        return { message: `Which file would you like to summarize? Please use \`SUMMARY /path/to/file\`. Available files:\n - ${fileList}` };
-      }
-      const fileResult = await getFile(parsed.path);
-      if (typeof fileResult === 'string') return { message: fileResult };
-
-      const file = fileResult as DriveItem;
-      if (!file.id) {
-        return { message: 'Error: File ID not found.' };
-      }
-
-      try {
-        const fileContentResult = await getFileContent(file.id);
-        if (typeof fileContentResult === 'string') return { message: fileContentResult };
-
-        const base64Content = fileContentResult.toString('base64');
-        const dataUri = `data:${file.mimeType};base64,${base64Content}`;
-
-        const result = await summarizeFileContent({ fileDataUri: dataUri });
-        return { message: `Summary for ${file.name}:\n${result.summary}` };
-      } catch (error) {
-        console.error(error);
-        return { message: 'An error occurred while summarizing the file.' };
-      }
+        return { message: "The summary functionality is not fully implemented yet. Please check back later!" };
     }
 
     case 'UNKNOWN':
@@ -113,14 +45,4 @@ export async function processCommand(commandStr: string): Promise<{ message: str
       const exhaustiveCheck: never = parsed;
       return { message: `Command not implemented.` };
   }
-}
-
-export async function signIn() {
-  const authUrl = await getAuthorizationUrl();
-  redirect(authUrl);
-}
-
-export async function signOut() {
-  await clearAuth();
-  redirect('/');
 }

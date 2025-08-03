@@ -9,12 +9,11 @@ import { ChatMessage, type Message } from '@/components/chat-message';
 import { processCommand } from '@/app/actions';
 import { Send, Bot } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import { useAuth } from './auth-provider';
 
 const initialMessage: Omit<Message, 'timestamp'> = {
   id: 'initial',
   sender: 'bot',
-  content: "Welcome to DriveWhizz! Please sign in to manage your Google Drive. Type 'HELP' to see what I can do once you're signed in.",
+  content: "Welcome to DriveWhizz! Type 'HELP' to see what I can do.",
 };
 
 const getTimestamp = () => {
@@ -30,7 +29,6 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [initialTimestamp, setInitialTimestamp] = useState('');
-  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setInitialTimestamp(getTimestamp());
@@ -38,12 +36,9 @@ export default function ChatInterface() {
 
   useEffect(() => {
     if (messages.length === 0 && initialTimestamp) {
-        const welcomeMessage = isAuthenticated
-            ? "Welcome back! Type 'HELP' to see what I can do."
-            : "Welcome to DriveWhizz! Please sign in to manage your Google Drive. Type 'HELP' to see available commands after signing in.";
-      setMessages([{ ...initialMessage, content: welcomeMessage, timestamp: initialTimestamp }]);
+      setMessages([{ ...initialMessage, timestamp: initialTimestamp }]);
     }
-  }, [initialTimestamp, isAuthenticated]);
+  }, [initialTimestamp]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -56,7 +51,7 @@ export default function ChatInterface() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || !isAuthenticated) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -120,12 +115,12 @@ export default function ChatInterface() {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={isAuthenticated ? 'Type your command...' : 'Please sign in to continue'}
+            placeholder={'Type your command...'}
             className="flex-1 bg-background"
-            disabled={isLoading || !isAuthenticated}
+            disabled={isLoading}
             autoFocus
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim() || !isAuthenticated}>
+          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
             <Send className="h-4 w-4" />
             <span className="sr-only">Send</span>
           </Button>

@@ -3,8 +3,7 @@
 
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Bot, User, Folder, FileText } from 'lucide-react';
-import type { DriveItem } from '@/lib/drive';
+import { Bot, User } from 'lucide-react';
 
 export interface Message {
   id: string;
@@ -14,25 +13,10 @@ export interface Message {
   data?: any;
 }
 
-export function ChatMessage({ sender, content, timestamp, data }: Message) {
+export function ChatMessage({ sender, content, timestamp }: Message) {
   const isUser = sender === 'user';
 
   const renderContent = () => {
-    if (data && Array.isArray(data)) {
-        return (
-            <div>
-                <p className="whitespace-pre-wrap">{content}</p>
-                <ul className="mt-2 space-y-1">
-                    {data.map((item: DriveItem) => (
-                        <li key={item.id} className="flex items-center space-x-2 text-sm p-1 rounded-md hover:bg-muted">
-                            {item.type === 'folder' ? <Folder className="h-4 w-4 text-primary" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
-                            <span>{item.name}</span>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        )
-    }
     return <p className="whitespace-pre-wrap">{content}</p>;
   }
 
